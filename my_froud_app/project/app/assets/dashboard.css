@@ -1,0 +1,145 @@
+/* General futuristic styling */
+body {
+    font-family: 'Orbitron', sans-serif; /* Futuristic font */
+    background-color: #141414; /* Dark black background */
+    color: #00ffff; /* Cyan text color */
+    margin: 0;
+    padding: 0;
+}
+
+/* Navbar customization */
+.navbar-custom {
+    background: linear-gradient(90deg, #00ffff, #00ff99); /* Bright cyan/green gradient */
+    box-shadow: 0 2px 6px #00ff99;
+    border-bottom: 2px solid #00ff99;
+}
+
+.navbar-brand {
+    color: #000 !important; /* Black text for contrast */
+    font-size: 1.5rem;
+}
+
+/* Card design with glowing edges */
+.card {
+    background-color: #1f1f1f; /* Deep grey background */
+    color: #00ff99; /* Neon green text */
+    border: 2px solid #00ffff; /* Cyan border */
+    border-radius: 10px;
+    box-shadow: 0 0 10px #00ffff;
+    transition: all 0.3s ease-in-out;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 0 20px #00ff99, 0 0 10px #00ffff;
+}
+
+/* Metric text styles */
+.text-danger {
+    color: #ff3333 !important; /* Bright red */
+}
+.text-success {
+    color: #33ff77 !important; /* Bright green */
+}
+.text-primary {
+    color: #33ccff !important; /* Bright sky blue */
+}
+
+/* Graph styling */
+.dcc-graph {
+    background-color: #1a1a1a; /* Slightly lighter black */
+    border: 2px solid #00ff99;
+    border-radius: 10px;
+    box-shadow: 0 0 10px #00ff99;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+/* Dropdown menu styling */
+.Select-control {
+    background-color: #141414; /* Deep black */
+    border: 2px solid #00ffff;
+    color: #00ff99; /* Neon green text */
+    border-radius: 8px;
+    transition: border-color 0.3s ease;
+}
+
+.Select-control:hover {
+    border-color: #ff00ff; /* Bright magenta on hover */
+}
+
+.Select--single .Select-value {
+    color: #00ff99;
+}
+
+/* Button design */
+button {
+    background: linear-gradient(90deg, #00ffff, #00ff99);
+    color: #141414; /* Dark text for contrast */
+    font-weight: bold;
+    border: none;
+    border-radius: 8px;
+    padding: 0.5rem 1rem;
+    box-shadow: 0 0 10px #00ffff;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+button:hover {
+    background: linear-gradient(90deg, #ff00ff, #00ffff);
+    box-shadow: 0 0 15px #ff00ff;
+    transform: scale(1.05);
+}
+
+/* Heatmap and PCA */
+.heatmap-custom {
+    border: 2px solid #ff00ff;
+    border-radius: 8px;
+    background-color: #101010;
+    box-shadow: 0 0 15px #ff00ff;
+}
+
+/* Futuristic text hover effect */
+h4, h5, h3 {
+    color: #00ff99;
+    text-shadow: 0 0 5px #00ffff;
+    transition: color 0.3s ease;
+}
+
+h4:hover, h5:hover {
+    color: #ff00ff; /* Magenta glow on hover */
+}
+
+/* Tooltip customization */
+.dash-tooltip {
+    background-color: #00ff99;
+    color: #141414;
+    border-radius: 6px;
+    padding: 0.5rem;
+    box-shadow: 0 0 5px #00ff99;
+}
+
+/* Custom Dropdown Styling */
+.Select-control,
+.Select-menu-outer {
+    background-color: #333333 !important; /* Dark background for dropdown */
+    color: #ffffff !important; /* White text color */
+    border: 1px solid #555555 !important; /* Subtle border */
+}
+
+.Select-option {
+    background-color: #444444 !important; /* Slightly lighter background */
+    color: #ffffff !important;
+}
+
+.Select-option.is-focused,
+.Select-option:hover {
+    background-color: #555555 !important; /* Highlighted option */
+    color: #ffffff !important;
+}
+
+.Select-placeholder,
+.Select-value {
+    color: #ffffff !important; /* Placeholder and selected text color */
+}
+

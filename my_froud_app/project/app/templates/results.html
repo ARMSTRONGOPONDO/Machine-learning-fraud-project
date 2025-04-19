@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fraud Detection Results</title>
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
+    <!-- Font Awesome CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+
+    <style>
+        :root {
+            --primary-color: #0d6efd;
+            --secondary-color: #6c757d;
+            --accent-color: #0dcaf0;
+            --success-color: #198754;
+            --warning-color: #ffc107;
+            --danger-color: #dc3545;
+            --light-color: rgba(248, 249, 250, 0.9);
+            --dark-color: rgba(33, 37, 41, 0.85);
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-image: url('/static/background_pic_results.webp');
+            background-repeat: no-repeat;
+            background-position: center center;
+            background-attachment: fixed;
+            background-size: cover;
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        .page-container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .header-container {
+            background-color: var(--light-color);
+            border-radius: 10px;
+            padding: 2rem 1rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        h1, h3 {
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        h3 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .btn {
+            margin: 10px;
+            padding: 0.6rem 1.2rem;
+            font-weight: 500;
+            border-radius: 6px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+            transition: all 0.3s ease;
+        }
+        
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn:active {
+            transform: translateY(1px);
+        }
+        
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        
+        .btn-primary:hover {
+            background-color: #0b5ed7;
+            border-color: #0a58ca;
+        }
+        
+        .btn-info {
+            background-color: var(--accent-color);
+            border-color: var(--accent-color);
+            color: #fff;
+        }
+        
+        .btn-info:hover {
+            background-color: #0bacce;
+            border-color: #0aa2c0;
+            color: #fff;
+        }
+        
+        .overview-card {
+            background-color: var(--light-color);
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            border-left: 5px solid var(--primary-color);
+        }
+        
+        .overview-card p {
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .results-container {
+            background-color: var(--light-color);
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* DataTable styling */
+        .dataTables_wrapper {
+            padding: 1rem 0;
+        }
+        
+        #resultsTable {
+            width: 100% !important;
+            border-collapse: separate;
+            border-spacing: 0;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        #resultsTable thead th {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 12px 15px;
+            text-align: left;
+            font-weight: 600;
+            position: relative;
+        }
+        
+        #resultsTable tbody tr {
+            border-bottom: 1px solid #f2f2f2;
+            transition: background-color 0.3s;
+        }
+        
+        #resultsTable tbody tr:nth-of-type(even) {
+            background-color: rgba(0, 0, 0, 0.03);
+        }
+        
+        #resultsTable tbody tr:hover {
+            background-color: rgba(13, 110, 253, 0.1);
+        }
+        
+        #resultsTable td {
+            padding: 12px 15px;
+        }
+        
+        /* DataTables controls styling */
+        .dataTables_filter input, 
+        .dataTables_length select {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 6px 10px;
+            margin-left: 5px;
+        }
+        
+        .dataTables_filter input:focus, 
+        .dataTables_length select:focus {
+            border-color: var(--primary-color);
+            outline: none;
+            box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+        }
+        
+        .dataTables_paginate .paginate_button {
+            padding: 6px 12px;
+            margin: 0 3px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            background-color: white;
+            color: #333 !important;
+        }
+        
+        .dataTables_paginate .paginate_button:hover {
+            background-color: #f8f9fa !important;
+            border-color: #ddd;
+            color: var(--primary-color) !important;
+        }
+        
+        .dataTables_paginate .paginate_button.current, 
+        .dataTables_paginate .paginate_button.current:hover {
+            background-color: var(--primary-color) !important;
+            border-color: var(--primary-color);
+            color: white !important;
+        }
+        
+        /* Animation keyframes */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.8s ease-in;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .btn {
+                display: block;
+                width: 100%;
+                margin: 10px 0;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .overview-card p,
+            .results-container p {
+                font-size: 1rem;
+            }
+        }
+        
+        /* Accessibility improvements */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border-width: 0;
+        }
+        
+        /* Focus indicators for accessibility */
+        a:focus, button:focus, input:focus, select:focus {
+            outline: 3px solid rgba(13, 110, 253, 0.5);
+            outline-offset: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid py-4 fade-in page-container">
+        <!-- Header -->
+        <div class="header-container text-center">
+            <h1>Fraud Detection Results</h1>
+            <p class="lead">Analyze potential fraudulent activities and take action based on machine learning predictions.</p>
+            
+            <!-- Navigation Buttons -->
+            <div class="mt-4 d-flex flex-wrap justify-content-center">
+                <a href="/" class="btn btn-primary" aria-label="Go back to homepage">
+                    <i class="fas fa-home me-2"></i> Home
+                </a>
+                <a href="/launch_dashboard" class="btn btn-info" aria-label="Explore interactive data dashboard">
+                    <i class="fas fa-chart-line me-2"></i> Explore Dashboard
+                </a>
+                <a href="{{ url_for('download_results', filename=processed_data_filepath.split('/')[-1]) }}" 
+                   class="btn btn-success" 
+                   download
+                   aria-label="Download results as CSV file">
+                    <i class="fas fa-download me-2"></i> Download Results (CSV)
+                </a>
+            </div>
+        </div>
+    
+        <!-- Fraud Overview -->
+        <div class="overview-card">
+            <h3><i class="fas fa-shield-alt me-2"></i>Fraud Overview</h3>
+            <p class="mb-3">Our machine learning model has processed your data and identified potential fraud patterns. The results below highlight transactions that may require further investigation.</p>
+    
+            <div class="row">
+                <div class="col-md-6">
+                    <h4 class="h5 text-primary"><i class="fas fa-exclamation-triangle me-2"></i>Common Fraud Types</h4>
+                    <ul>
+                        <li>Identity theft and account takeover</li>
+                        <li>Payment fraud and false charges</li>
+                        <li>Loan and credit application fraud</li>
+                        <li>Insider threats and employee fraud</li>
+                    </ul>
+                </div>
+                <div class="col-md-6">
+                    <h4 class="h5 text-primary"><i class="fas fa-lightbulb me-2"></i>Next Steps</h4>
+                    <ul>
+                        <li>Review flagged transactions in detail</li>
+                        <li>Implement additional verification for suspicious accounts</li>
+                        <li>Update security protocols based on findings</li>
+                        <li><a href="/learn_more" class="text-primary">Learn more about prevention strategies</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    
+        <!-- Prediction Results Table -->
+        <div class="results-container">
+            <h3><i class="fas fa-table me-2"></i>Prediction Results</h3>
+            <p>The table below shows processed data with fraud prediction scores. Higher scores indicate greater likelihood of fraudulent activity.</p>
+            
+            <div class="table-responsive">
+                <table id="resultsTable" class="table table-striped table-bordered">
+                    <thead>
+                        <tr>
+                            {% for col in column_names %}
+                                <th>{{ col }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in data %}
+                            <tr>
+                                {% for cell in row %}
+                                    <td>{{ cell }}</td>
+                                {% endfor %}
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <footer class="mt-4 text-center p-3 overview-card">
+            <p class="mb-1"><small>Fraud Detection System v2.0 | <a href="/privacy" class="text-primary">Privacy Policy</a> | <a href="/contact" class="text-primary">Contact Support</a></small></p>
+            <p><small>© {{ current_year }} Fraud Detection Services. All rights reserved.</small></p>
+        </footer>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        // Initialize DataTables with enhanced features
+        $(document).ready(function () {
+            const resultsTable = $('#resultsTable').DataTable({
+                paging: true,
+                searching: true,
+                ordering: true,
+                info: true,
+                lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
+                pageLength: 10,
+                responsive: true,
+                language: {
+                    search: "<i class='fas fa-search'></i> Search:",
+                    lengthMenu: "Show _MENU_ entries",
+                    info: "Showing _START_ to _END_ of _TOTAL_ entries",
+                    infoEmpty: "No entries available",
+                    paginate: {
+                        previous: "<i class='fas fa-chevron-left'></i>",
+                        next: "<i class='fas fa-chevron-right'></i>"
+                    },
+                    emptyTable: "No data available in table",
+                    zeroRecords: "No matching records found"
+                },
+                drawCallback: function() {
+                    // Add accessibility attributes to pagination controls
+                    $('.paginate_button.previous').attr('aria-label', 'Previous page');
+                    $('.paginate_button.next').attr('aria-label', 'Next page');
+                    $('.paginate_button:not(.previous):not(.next)').each(function() {
+                        $(this).attr('aria-label', 'Page ' + $(this).text());
+                    });
+                }
+            });
+            
+            // Highlight rows based on fraud indicators
+            // Assuming column index 'n' contains fraud score or indicator
+            const fraudColumnIndex = 0; // Change this to the actual index of your fraud score column
+            
+            // Check if fraud indicator column exists
+            const fraudColumnExists = resultsTable.column(fraudColumnIndex).data().length > 0;
+            
+            if (fraudColumnExists) {
+                resultsTable.rows().every(function() {
+                    const data = this.data();
+                    const fraudScore = parseFloat(data[fraudColumnIndex]);
+                    
+                    // Apply conditional formatting based on fraud score
+                    if (!isNaN(fraudScore)) {
+                        if (fraudScore > 0.8) {
+                            $(this.node()).addClass('table-danger');
+                        } else if (fraudScore > 0.5) {
+                            $(this.node()).addClass('table-warning');
+                        } else if (fraudScore < 0.2) {
+                            $(this.node()).addClass('table-success');
+                        }
+                    }
+                });
+            }
+            
+            // Add tooltips to column headers for better usability
+            $('#resultsTable thead th').each(function() {
+                const columnName = $(this).text().trim();
+                let tooltipText = '';
+                
+                // Add helpful tooltips based on column names
+                switch(columnName.toLowerCase()) {
+                    case 'transaction_id':
+                        tooltipText = 'Unique identifier for each transaction';
+                        break;
+                    case 'amount':
+                        tooltipText = 'Transaction amount in currency';
+                        break;
+                    case 'fraud_score':
+                    case 'probability':
+                    case 'fraud_probability':
+                        tooltipText = 'Likelihood of fraud from 0 (safe) to 1 (likely fraud)';
+                        break;
+                    case 'prediction':
+                        tooltipText = 'Model prediction: 1 indicates potential fraud, 0 indicates legitimate';
+                        break;
+                    // Add more cases as needed
+                }
+                
+                if (tooltipText) {
+                    $(this).attr('title', tooltipText)
+                           .attr('data-bs-toggle', 'tooltip')
+                           .attr('data-bs-placement', 'top');
+                }
+            });
+            
+            // Initialize Bootstrap tooltips
+            const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+        });
+    </script>
+</body>
+</html>

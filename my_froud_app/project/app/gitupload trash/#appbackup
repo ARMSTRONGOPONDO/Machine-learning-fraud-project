@@ -1,0 +1,259 @@
+from flask import Flask, render_template, request, jsonify, redirect, send_from_directory, url_for
+import subprocess
+import os
+import pandas as pd
+import matplotlib.pyplot as plt
+import io
+import base64
+from datetime import datetime
+from dashboard import create_dashboard
+import tensorflow as tf
+import joblib
+from flask import flash
+app = Flask(__name__)
+
+
+app.secret_key = os.urandom(24)
+
+UPLOAD_FOLDER = "uploads"
+PROCESSED_FOLDER = "processed_data"
+app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
+app.config["PROCESSED_FOLDER"] = PROCESSED_FOLDER
+
+# Ensure the uploads and processed_data folders exist
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+os.makedirs(PROCESSED_FOLDER, exist_ok=True)
+
+# Initialize the dashboard
+create_dashboard(app)
+
+try:
+    # Build the model paths dynamically
+    model_dir = os.path.join(os.path.dirname(__file__), "models")  # Navigate to the 'models' directory
+
+    tf_model_path = os.path.join(model_dir, "kenyan_fraud_nn.keras")
+    xgb_model_path = os.path.join(model_dir, "kenyan_fraud_xgb.pkl")
+    meta_model_path = os.path.join(model_dir, "kenyan_fraud_rf.pkl")
+    column_transformer_path = os.path.join(model_dir, "preprocessor.pkl")
+
+    # Load models
+    tf_model = tf.keras.models.load_model(tf_model_path)
+    xgb_model = joblib.load(xgb_model_path)
+    meta_model = joblib.load(meta_model_path)
+    column_transformer = joblib.load(column_transformer_path)
+
+    print("Models loaded successfully.")
+
+except FileNotFoundError as e:
+    raise FileNotFoundError(f"The required model file was not found: {e}")
+except Exception as e:
+    raise RuntimeError(f"An error occurred while loading the models: {e}")
+
+# Utility: Generate pie chart
+def generate_pie_chart(fraud_count, non_fraud_count):
+    plt.figure(figsize=(5, 5))
+    plt.pie(
+        [fraud_count, non_fraud_count],
+        labels=["Fraudulent", "Non-Fraudulent"],
+        autopct="%1.1f%%",
+        startangle=90,
+        colors=["red", "green"]
+    )
+    plt.title("Fraud vs Non-Fraud Transactions")
+    buf = io.BytesIO()
+    plt.savefig(buf, format="png")
+    buf.seek(0)
+    chart_data = base64.b64encode(buf.getvalue()).decode("utf-8")
+    buf.close()
+    return chart_data
+
+@app.route("/")
+def index():
+    return render_template("index.html")
+
+@app.route("/predict", methods=["POST"])
+def predict():
+    if "csvfile" in request.files:
+        csv_file = request.files["csvfile"]
+        if csv_file.filename.endswith(".csv"):
+            try:
+                # Create a timestamp-based folder for this upload
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                upload_timestamp_folder = os.path.join(UPLOAD_FOLDER, timestamp)
+                os.makedirs(upload_timestamp_folder, exist_ok=True)
+
+                # Save the uploaded CSV file
+                filepath = os.path.join(upload_timestamp_folder, csv_file.filename)
+                csv_file.save(filepath)
+
+                chunk_size = 1000  # Process 1000 rows at a time
+                processed_chunks = []
+
+                column_names = pd.read_csv(filepath, nrows=1).columns.tolist()
+
+                
+
+                for chunk in pd.read_csv(filepath, chunksize=chunk_size):
+                    chunk.columns = column_names
+                    transformed_data = column_transformer.transform(chunk)
+
+                    # Predict using all models
+                    tf_predictions = (tf_model.predict(transformed_data) > 0.5).astype(int)
+                    xgb_predictions = xgb_model.predict(transformed_data)
+                    meta_predictions = meta_model.predict(transformed_data)
+
+                    # Append predictions
+                    chunk["TF_Prediction"] = ["Fraudulent" if p == 1 else "Non-Fraudulent" for p in tf_predictions]
+                    chunk["XGB_Prediction"] = ["Fraudulent" if p == 1 else "Non-Fraudulent" for p in xgb_predictions]
+                    chunk["Meta_Prediction"] = ["Fraudulent" if p == 1 else "Non-Fraudulent" for p in meta_predictions]
+
+                    processed_chunks.append(chunk)
+
+
+                # Combine all chunks and save processed data to a unique path
+                processed_data = pd.concat(processed_chunks, ignore_index=True)
+                processed_data_filepath = os.path.join(PROCESSED_FOLDER, f"{timestamp}_processed_data.csv")
+                processed_data.to_csv(processed_data_filepath, index=False)
+
+                fraud_count = (processed_data["Meta_Prediction"] == "Fraudulent").sum()
+                non_fraud_count = (processed_data["Meta_Prediction"] == "Non-Fraudulent").sum()
+                pie_chart = generate_pie_chart(fraud_count, non_fraud_count)
+
+                preview_data = processed_data.head(50).values.tolist()
+                column_names = processed_data.columns.tolist()
+
+                # Optionally move the processed file to the static folder
+                static_folder = os.path.join(app.root_path, 'static')
+                os.makedirs(static_folder, exist_ok=True)
+                static_file_path = os.path.join(static_folder, f"{timestamp}_processed_data.csv")
+
+                # Move file if necessary
+                if not os.path.exists(static_file_path):
+                    os.rename(processed_data_filepath, static_file_path)
+
+                # Pass the processed data path to the results page
+                return render_template(
+                    "results.html",
+                    column_names=column_names,
+                    data=preview_data,
+                    pie_chart=pie_chart,
+                    processed_data_filepath=static_file_path  # Use the correct processed file path
+                )
+
+            except ValueError as e:
+                flash(f"Error processing file: {e}", "error")
+                return redirect(url_for("index"))
+            except Exception as e:
+                flash(f"An unexpected error occurred: {e}", "error")
+                return redirect(url_for("index"))
+        else:
+            flash("Invalid file format. Please upload a CSV file.", "error")
+            return redirect(url_for("index"))
+    else:
+        flash("No file uploaded.", "error")
+        return redirect(url_for("index"))
+    
+
+@app.route("/download_results/<path:filename>")
+def download_results(filename):
+    # Ensure processed data is in the static folder
+    static_folder = os.path.join(app.root_path, 'static')
+    file_path = os.path.join(static_folder, filename)
+    if os.path.exists(file_path):
+        return send_from_directory(static_folder, filename, as_attachment=True)
+    else:
+        return jsonify({"error": "File not found."}), 404
+
+@app.route("/launch_dashboard")
+def launch_dashboard():
+    try:
+        # Correct directory to look for processed files
+        processed_folder = os.path.join(app.root_path, 'static')  # Use 'static' instead of PROCESSED_FOLDER
+        
+        # Ensure the folder exists
+        if not os.path.exists(processed_folder):
+            raise FileNotFoundError(f"The folder '{processed_folder}' does not exist.")
+
+        # List all files ending with '_processed_data.csv'
+        files = [f for f in os.listdir(processed_folder) if f.endswith("_processed_data.csv")]
+
+        # Check if any files exist
+        if not files:
+            raise FileNotFoundError(f"No '_processed_data.csv' files found in '{processed_folder}'.")
+
+        # Find the latest file based on modification time
+        latest_file = max(
+            files,
+            key=lambda f: os.path.getmtime(os.path.join(processed_folder, f))
+        )
+        processed_data_filepath = os.path.join(processed_folder, latest_file)
+
+        # Save the latest file path to a text file
+        with open("latest_file_path.txt", "w") as file:
+            file.write(processed_data_filepath)
+
+        # Log success for debugging
+        print(f"Latest file located: {processed_data_filepath}")
+
+        # If successful, redirect to dashboard
+        return redirect("/dashboard/")
+        
+    except FileNotFoundError as e:
+        flash(f"Error: {e}", "error")
+        return redirect(url_for("index"))  # Redirect back to index (or another page)
+        
+    except Exception as e:
+        flash(f"An unexpected error occurred: {e}", "error")
+        return redirect(url_for("index"))  # Redirect back to index (or another page)
+
+
+
+import time
+streamlit_process = None
+
+@app.route('/ai-fraud-detection')
+def launch_streamlit():
+    global streamlit_process
+
+    # Check if Streamlit is installed
+    try:
+        subprocess.run(['streamlit', '--version'], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    except FileNotFoundError:
+        return "Streamlit is not installed. Please install it using 'pip install streamlit'.", 500
+
+    # Terminate any existing Streamlit process
+    if streamlit_process is not None and streamlit_process.poll() is None:
+        print(f"Terminating existing Streamlit process (PID: {streamlit_process.pid})...")
+        streamlit_process.terminate()
+        time.sleep(2)
+
+    try:
+        # Path to your Streamlit script
+        streamlit_script = os.path.abspath(
+            '/home/armstrong/my_froud_app/venv/bin/project/app/assistance_API/main.py'
+        )
+
+        # Ensure the script exists
+        if not os.path.isfile(streamlit_script):
+            raise FileNotFoundError(f"Streamlit script not found at {streamlit_script}")
+
+        # Launch the Streamlit app
+        streamlit_process = subprocess.Popen(
+            ['streamlit', 'run', streamlit_script, '--server.port', '8502'],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True
+        )
+        print(f"Streamlit app launched with PID: {streamlit_process.pid}")
+        time.sleep(5)  # Wait for Streamlit to start
+
+    except Exception as e:
+        print(f"Failed to launch Streamlit app: {e}")
+        return f"Failed to launch Streamlit app: {e}", 500
+
+    # Redirect the user to the Streamlit app URL
+    return redirect("http://127.0.0.1:5000/")  # Redirect to the Streamlit app URL
+
+
+if __name__ == '__main__':
+    app.run(debug=True)

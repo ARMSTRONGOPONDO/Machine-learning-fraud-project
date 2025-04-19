@@ -1,0 +1,5 @@
+{
+    "python.analysis.extraPaths": [
+        "./venv/bin/project/app/realtime kafka/app"
+    ]
+}

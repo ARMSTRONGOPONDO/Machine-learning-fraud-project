@@ -1,0 +1,7 @@
+my_froud_app/venv/
+*.csv
+*.so
+__pycache__/
+.ipynb_checkpoints/
+*.pyc
+.env
